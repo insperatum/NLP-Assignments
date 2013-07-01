@@ -15,36 +15,41 @@ public class Ex1 {
 		new Ex1().run();
 	}
 	
+	public void init() throws IOException {
+        File f = new File("data/gene.counts");
+        BufferedReader r = new BufferedReader(new FileReader(f));
+        
+        System.out.println("Training...");
+        String line;
+        while((line = r.readLine()) != null) {
+            String[] parts = line.split(" ");
+            if(parts[1].equals("WORDTAG")) {
+                if(! tagWordFrequencies.containsKey(parts[2])) {
+                    tagWordFrequencies.put(parts[2], new WordFrequency());
+                }
+                tagWordFrequencies.get(parts[2]).add(parts[3], Integer.parseInt(parts[0]));
+                totals.add(parts[3], Integer.parseInt(parts[0]));
+            }
+        }
+        r.close();
+        
+        System.out.println("Identifying Rare Words...");
+        for(Entry<String, Integer> totalsEntry : totals.entrySet()) {
+            if(totalsEntry.getValue() < 5) {
+                for(Entry<String, WordFrequency> tagEntry : tagWordFrequencies.entrySet()) {
+                    if(tagEntry.getValue().containsKey(totalsEntry.getKey())) {
+                        int t = tagEntry.getValue().get(totalsEntry.getKey());
+                        tagEntry.getValue().remove(totalsEntry.getKey());
+                        tagEntry.getValue().add("_RARE_", t);
+                    }
+                }
+            }
+        }
+	}
+	
 	private void run() throws IOException {
-		File f = new File("data/gene.counts");
-		BufferedReader r = new BufferedReader(new FileReader(f));
+		init();
 		
-		System.out.println("Training...");
-		String line;
-		while((line = r.readLine()) != null) {
-			String[] parts = line.split(" ");
-			if(parts[1].equals("WORDTAG")) {
-				if(! tagWordFrequencies.containsKey(parts[2])) {
-					tagWordFrequencies.put(parts[2], new WordFrequency());
-				}
-				tagWordFrequencies.get(parts[2]).add(parts[3], Integer.parseInt(parts[0]));
-				totals.add(parts[3], Integer.parseInt(parts[0]));
-			}
-		}
-		r.close();
-		
-		System.out.println("Identifying Rare Words...");
-		for(Entry<String, Integer> totalsEntry : totals.entrySet()) {
-			if(totalsEntry.getValue() < 5) {
-				for(Entry<String, WordFrequency> tagEntry : tagWordFrequencies.entrySet()) {
-					if(tagEntry.getValue().containsKey(totalsEntry.getKey())) {
-						int t = tagEntry.getValue().get(totalsEntry.getKey());
-						tagEntry.getValue().remove(totalsEntry.getKey());
-						tagEntry.getValue().add("_RARE_", t);
-					}
-				}
-			}
-		}
 		
 		System.out.println("Testing...");
 		File g = new File("data/gene.test.p1");
@@ -52,8 +57,9 @@ public class Ex1 {
 		g.createNewFile();
 		BufferedWriter w = new BufferedWriter(new FileWriter(g));
 		
-		f = new File("data/gene.test");
-		r = new BufferedReader(new FileReader(f));
+		File f = new File("data/gene.test");
+		BufferedReader r = new BufferedReader(new FileReader(f));
+		String line;
 		while((line = r.readLine()) != null) {
 			if(! line.isEmpty()) {
 				w.write(line + " " + getMLTag(line));
