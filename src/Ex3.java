@@ -10,17 +10,17 @@ import java.util.LinkedList;
 import java.util.Stack;
 import java.util.Map.Entry;
 
-public class Ex2 {
+public class Ex3 {
 	private static HashMap<String, WordFrequency > tagWordFrequencies = new HashMap<String, WordFrequency >();
 	private static HashMap<String, Integer> ngramCount = new HashMap<String, Integer>();
 	private static ArrayList<HashMap<String, Double>> viterbiProb = new ArrayList<HashMap<String, Double>>();
 	private static ArrayList<HashMap<String, String>> viterbiTag = new ArrayList<HashMap<String, String>>();
-	private static HashMap<String, Boolean> commonWords = new HashMap<String, Boolean>();
+	private static ArrayList<String> commonWords = new ArrayList<String>();
 	
 	private WordFrequency totals = new WordFrequency();
 	
 	public static void main(String[] args) throws IOException {
-		new Ex2().run();
+		new Ex3().run();
 	}
 	
 	public void init() throws IOException {
@@ -37,7 +37,7 @@ public class Ex2 {
                 }
                 tagWordFrequencies.get(parts[2]).add(parts[3], Integer.parseInt(parts[0]));
                 totals.add(parts[3], Integer.parseInt(parts[0]));
-                commonWords.put(parts[3], true);
+                if(!commonWords.contains(parts[3])) commonWords.add(parts[3]);
             } else if(parts[1].equals("1-GRAM")) {
                 ngramCount.put(parts[2], Integer.parseInt(parts[0]));
             } else if(parts[1].equals("2-GRAM")) {
@@ -55,7 +55,7 @@ public class Ex2 {
                     if(tagEntry.getValue().containsKey(totalsEntry.getKey())) {
                         int t = tagEntry.getValue().get(totalsEntry.getKey());
                         tagEntry.getValue().remove(totalsEntry.getKey());
-                        tagEntry.getValue().add("_RARE_", t);
+                        tagEntry.getValue().add(getRareType(totalsEntry.getKey()), t);
                         commonWords.remove(totalsEntry.getKey());
                     }
                 }
@@ -67,7 +67,7 @@ public class Ex2 {
 		init();
 		
 		System.out.println("Testing...");
-		File g = new File("data/gene.test.p2");
+		File g = new File("data/gene.test.p3");
 		if(g.exists()) g.delete();
 		g.createNewFile();
 		BufferedWriter w = new BufferedWriter(new FileWriter(g));
@@ -84,7 +84,7 @@ public class Ex2 {
 		    
 		    if(line.isEmpty()) {
 		        sentenceWords.pop();
-		        System.out.println("\nEnd of sentence. Finding best tag sequence:");
+		        //System.out.println("\nEnd of sentence. Finding best tag sequence:");
 		        String sentenceOutput = "";
 		        String endTag = "STOP";
 		        while(i > 1) {
@@ -108,7 +108,7 @@ public class Ex2 {
     		        i--;
 		        }
 		        i=0;
-		        System.out.println("\n" + sentenceOutput);
+		        //System.out.println("\n" + sentenceOutput);
 		        w.write(sentenceOutput);
 		        w.newLine();
 		        //break;
@@ -156,10 +156,11 @@ public class Ex2 {
 	                    e = 1;
 	                } else {
     	                WordFrequency twf = tagWordFrequencies.get(tag3);
-    	                if(! commonWords.containsKey(word)) {
+    	                if(! commonWords.contains(word)) {
     	                    //System.out.println(word + " is RARE!");
     	                    //System.out.println(tag3 + " has rare count:" + twf.get("_RARE_"));
-    	                    e = (double)twf.get("_RARE_") / twf.total;
+    	                    e = (double)twf.get(getRareType(word)) / twf.total;
+    	                    //System.out.println(word + ": " + getRareType(word)
     	                } else if(twf.containsKey(word)) {
     	                    e = (double)twf.get(word) / twf.total;
     	                } else {
@@ -190,6 +191,18 @@ public class Ex2 {
 	    return 0;
 	}
 	
+
+    private String getRareType(String word) {
+        if(word.matches(".*[0-9].*")){
+            return "_NUMERIC_";
+        } else if(word.matches("[A-Z]*")){
+            return "_CAPITALS_";
+        } else if(word.matches(".*[A-Z]")){
+            return "_LASTCAP_";
+        } else {
+            return "_RARE_";
+        }
+    }
 	
 	private class WordFrequency extends HashMap<String, Integer> {
 		private int total = 0;
